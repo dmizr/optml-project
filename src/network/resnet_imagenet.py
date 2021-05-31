@@ -4,8 +4,8 @@ import torch.nn as nn
 import torchvision
 from torchvision.models.resnet import BasicBlock, Bottleneck
 
+__all__ = ["ResNetImageNet", "resnet18", "resnet50"]
 
-__all__ = ['ResNetImageNet', 'resnet18', 'resnet50']
 
 class ResNetImageNet(torchvision.models.ResNet):
     """Modifies `torchvision's ResNet implementation, originally designed for ImageNet

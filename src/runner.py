@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
+from timm.utils import ModelEmaV2
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import CIFAR10
@@ -16,10 +17,9 @@ from src.evaluator import Evaluator
 from src.scheduler import ExponentialDecayLR
 from src.trainer import Trainer
 from src.transform import cifar10_transform
-from src.utils import flatten
 
 
-def train(cfg: DictConfig) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+def train(cfg: DictConfig):
     """Trains model from config
 
     Args:
@@ -42,11 +42,14 @@ def train(cfg: DictConfig) -> Tuple[Optional[float], Optional[float], Optional[f
     # Use Hydra's instantiation to initialize directly from the config file
     model: torch.nn.Module = instantiate(cfg.model).to(device)
     loss_fn: torch.nn.Module = nn.CrossEntropyLoss().to(device)
-    optimizer: torch.optim.Optimizer = instantiate(
-        cfg.optimizer, model.parameters()
-    )
+    optimizer: torch.optim.Optimizer = instantiate(cfg.optimizer, model.parameters())
     scheduler = instantiate(cfg.scheduler, optimizer)
     update_sched_on_iter = True if isinstance(scheduler, ExponentialDecayLR) else False
+
+    # Averaged model
+    averaged_model: Optional[ModelEmaV2] = (
+        instantiate(cfg.averaged, model) if cfg.averaged is not None else None
+    )
 
     # Paths
     save_path = os.getcwd() if cfg.save else None
@@ -81,66 +84,80 @@ def train(cfg: DictConfig) -> Tuple[Optional[float], Optional[float], Optional[f
         writer=writer,
         save_path=save_path,
         checkpoint_path=checkpoint_path,
-        mixed_precision=cfg.mixed_precision,
+        averaged_model=averaged_model,
     )
 
     # Launch training process
     trainer.train()
 
-    # End of training & model evaluation
-    train_acc, val_acc, test_acc = None, None, None
-
     # Train evaluation
-    if train_loader is not None:
-        logger.info("Evaluating on training data")
-        evaluator = Evaluator(
-            model=model, device=device, loader=train_loader, checkpoint_path=None
-        )
-        train_acc = evaluator.evaluate()
+    def end_eval(model, on_averaged=False):
+        # End of training & model evaluation
+        train_acc, val_acc, test_acc = None, None, None
 
-        if writer:
-            writer.add_scalar("Eval/Accuracy/train", train_acc, -1)
-
-    # Val evaluation
-    if val_loader is not None:
-        logger.info("Evaluating on validation data")
-        evaluator = Evaluator(
-            model=model, device=device, loader=val_loader, checkpoint_path=None
-        )
-        val_acc = evaluator.evaluate()
-
-        if writer:
-            writer.add_scalar("Eval/Accuracy/val", val_acc, -1)
-
-    # Test evaluation
-    if test_loader is not None:
-        logger.info("Evaluating on test data")
-        evaluator = Evaluator(
-            model=model, device=device, loader=test_loader, checkpoint_path=None
-        )
-        test_acc = evaluator.evaluate()
-
-        if writer:
-            writer.add_scalar("Eval/Accuracy/test", test_acc, -1)
-
-    # Store hyper-parameters and accuracies in results/ directory
-    if cfg.tensorboard:
-        res_path = hydra.utils.to_absolute_path(f"results/{cfg.dataset.name}/")
-        hparam_dict = flatten(OmegaConf.to_container(cfg, resolve=True))
-        acc_dict = {
-            name: acc
-            for name, acc in (
-                ["train_acc", train_acc],
-                ["val_acc", val_acc],
-                ["test_acc", test_acc],
+        if train_loader is not None:
+            logger.info("Evaluating on training data")
+            evaluator = Evaluator(
+                model=model, device=device, loader=train_loader, checkpoint_path=None
             )
-            if acc is not None
-        }
+            train_acc = evaluator.evaluate()
 
-        with SummaryWriter(res_path) as w:
-            w.add_hparams(hparam_dict, acc_dict)
+            if writer:
+                suffix = "averaged_train" if on_averaged else "train"
+                writer.add_scalar(f"Eval/Accuracy/{suffix}", train_acc, -1)
 
-    return train_acc, val_acc, test_acc
+        # Val evaluation
+        if val_loader is not None:
+            logger.info("Evaluating on validation data")
+            evaluator = Evaluator(
+                model=model, device=device, loader=val_loader, checkpoint_path=None
+            )
+            val_acc = evaluator.evaluate()
+
+            if writer:
+                suffix = "averaged_val" if on_averaged else "val"
+                writer.add_scalar(f"Eval/Accuracy/{suffix}", val_acc, -1)
+
+        # Test evaluation
+        if test_loader is not None:
+            logger.info("Evaluating on test data")
+            evaluator = Evaluator(
+                model=model, device=device, loader=test_loader, checkpoint_path=None
+            )
+            test_acc = evaluator.evaluate()
+
+            if writer:
+                suffix = "averaged_test" if on_averaged else "test"
+                writer.add_scalar(f"Eval/Accuracy/{suffix}", test_acc, -1)
+
+        # # Store hyper-parameters and accuracies in results/ directory
+        # if cfg.tensorboard:
+        #     res_path = hydra.utils.to_absolute_path(f"results/{cfg.dataset.name}/")
+        #     hparam_dict = flatten(OmegaConf.to_container(cfg, resolve=True))
+        #     acc_dict = {
+        #         name: acc
+        #         for name, acc in (
+        #             ["train_acc", train_acc],
+        #             ["val_acc", val_acc],
+        #             ["test_acc", test_acc],
+        #         )
+        #         if acc is not None
+        #     }
+        #
+        #     with SummaryWriter(res_path) as w:
+        #         w.add_hparams(hparam_dict, acc_dict)
+
+        return train_acc, val_acc, test_acc
+
+    train_acc, val_acc, test_acc = end_eval(model, on_averaged=False)
+    if averaged_model is not None:
+        avg_train_acc, avg_val_acc, avg_test_acc = end_eval(
+            averaged_model.module, on_averaged=True
+        )
+    else:
+        avg_train_acc, avg_val_acc, avg_test_acc = None, None, None
+
+    return (train_acc, val_acc, test_acc), (avg_train_acc, avg_val_acc, avg_test_acc)
 
 
 def evaluate(cfg: DictConfig) -> None:

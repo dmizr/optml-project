@@ -1,11 +1,11 @@
 import logging
 import os
 import time
-from typing import Optional, Any
+from typing import Any, Optional
 
 import torch
 import tqdm
-from torch.cuda.amp import GradScaler, autocast
+from timm.utils import ModelEmaV2
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -29,6 +29,7 @@ class Trainer:
         writer: writer which logs metrics to TensorBoard (disabled if None)
         save_path: folder in which to save models (disabled if None)
         checkpoint_path: path to model checkpoint, to resume training
+        averaged_model: optional averaged model
 
     """
 
@@ -47,7 +48,7 @@ class Trainer:
         writer: Optional[SummaryWriter] = None,
         save_path: Optional[str] = None,
         checkpoint_path: Optional[str] = None,
-        mixed_precision: bool = False,
+        averaged_model: Optional[ModelEmaV2] = None,
     ) -> None:
 
         # Logging
@@ -74,11 +75,8 @@ class Trainer:
         self.epochs = epochs
         self.start_epoch = 0
 
-        # Floating-point precision
-        self.mixed_precision = (
-            True if self.device.type == "cuda" and mixed_precision else False
-        )
-        self.scaler = GradScaler() if self.mixed_precision else None
+        # Averaged model
+        self.averaged_model = averaged_model
 
         if checkpoint_path:
             self._load_from_checkpoint(checkpoint_path)
@@ -90,6 +88,9 @@ class Trainer:
         self.val_loss_metric = LossMetric()
         self.val_acc_metric = AccuracyMetric(k=1)
 
+        self.avg_model_loss_metric = LossMetric()
+        self.avg_model_acc_metric = AccuracyMetric(k=1)
+
     def train(self) -> None:
         """Trains the model"""
         self.logger.info("Beginning training")
@@ -97,13 +98,13 @@ class Trainer:
 
         for epoch in range(self.start_epoch, self.epochs):
             start_epoch_time = time.time()
-            if self.mixed_precision:
-                self._train_loop_amp(epoch)
-            else:
-                self._train_loop(epoch)
+            self._train_loop(epoch)
 
             if self.val_loader is not None:
-                self._val_loop(epoch)
+                self._val_loop(epoch, on_averaged=False)
+
+                if self.averaged_model is not None:
+                    self._val_loop(epoch, on_averaged=True)
 
             epoch_time = time.time() - start_epoch_time
             self._end_loop(epoch, epoch_time)
@@ -111,6 +112,10 @@ class Trainer:
         train_time_h = (time.time() - start_time) / 3600
         self.logger.info(f"Finished training! Total time: {train_time_h:.2f}h\n")
         self._save_model(os.path.join(self.save_path, "final_model.pt"), self.epochs)
+        if self.averaged_model is not None:
+            self._save_averaged_model(
+                os.path.join(self.save_path, "final_averaged_model.pt"), self.epochs
+            )
 
     def _train_loop(self, epoch: int) -> None:
         """
@@ -144,65 +149,9 @@ class Trainer:
 
             self.optimizer.step()
 
-            # Update scheduler if it is iter-based
-            if self.scheduler is not None and self.update_sched_on_iter:
-                self.scheduler.step()
-
-            # Update metrics
-            self.train_loss_metric.update(loss.item(), data.shape[0])
-            self.train_acc_metric.update(out, target)
-
-            # Update progress bar
-            pbar.update()
-            pbar.set_postfix_str(f"Loss: {loss.item():.3f}", refresh=False)
-
-        # Update scheduler if it is epoch-based
-        if self.scheduler is not None and not self.update_sched_on_iter:
-            self.scheduler.step()
-
-        pbar.close()
-
-    def _train_loop_amp(self, epoch: int) -> None:
-        """
-        Train loop with Automatic Mixed Precision
-
-        Args:
-            epoch: current epoch
-        """
-        # Progress bar
-        pbar = tqdm.tqdm(total=len(self.train_loader), leave=False)
-        pbar.set_description(f"Epoch {epoch} | Train")
-
-        # Set to train
-        self.model.train()
-
-        # Loop
-        for data, target in self.train_loader:
-            # To device
-            data, target = data.to(self.device), target.to(self.device)
-
-            # Forward + backward
-            self.optimizer.zero_grad()
-
-            # Use amp in forward pass
-            with autocast():
-                out = self.model(data)
-                loss = self.loss_fn(out, target)
-
-            # Backward pass with scaler
-            self.scaler.scale(loss).backward()
-
-            # Unscale before gradient clipping
-            self.scaler.unscale_(self.optimizer)
-
-            if self.grad_clip_max_norm is not None:
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(), self.grad_clip_max_norm
-                )
-
-            # Update optimizer and scaler
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            # Update averaged model
+            if self.averaged_model is not None:
+                self.averaged_model.update(self.model)
 
             # Update scheduler if it is iter-based
             if self.scheduler is not None and self.update_sched_on_iter:
@@ -222,7 +171,7 @@ class Trainer:
 
         pbar.close()
 
-    def _val_loop(self, epoch: int) -> None:
+    def _val_loop(self, epoch: int, on_averaged=False) -> None:
         """
         Standard validation loop
 
@@ -231,7 +180,10 @@ class Trainer:
         """
         # Progress bar
         pbar = tqdm.tqdm(total=len(self.val_loader), leave=False)
-        pbar.set_description(f"Epoch {epoch} | Validation")
+        if not on_averaged:
+            pbar.set_description(f"Epoch {epoch} | Validation")
+        else:
+            pbar.set_description(f"Epoch {epoch} | Averaged model validation")
 
         # Set to eval
         self.model.eval()
@@ -243,12 +195,20 @@ class Trainer:
                 data, target = data.to(self.device), target.to(self.device)
 
                 # Forward
-                out = self.model(data)
+                if not on_averaged:
+                    out = self.model(data)
+                else:
+                    out = self.averaged_model.module(data)
+
                 loss = self.loss_fn(out, target)
 
                 # Update metrics
-                self.val_loss_metric.update(loss.item(), data.shape[0])
-                self.val_acc_metric.update(out, target)
+                if not on_averaged:
+                    self.val_loss_metric.update(loss.item(), data.shape[0])
+                    self.val_acc_metric.update(out, target)
+                else:
+                    self.avg_model_loss_metric.update(loss.item(), data.shape[0])
+                    self.avg_model_acc_metric.update(out, target)
 
                 # Update progress bar
                 pbar.update()
@@ -267,6 +227,10 @@ class Trainer:
         # Save model
         if self.save_path is not None:
             self._save_model(os.path.join(self.save_path, "most_recent.pt"), epoch)
+            if self.averaged_model is not None:
+                self._save_averaged_model(
+                    os.path.join(self.save_path, "averaged_most_recent.pt"), epoch
+                )
 
         # Clear metrics
         self.train_loss_metric.reset()
@@ -274,6 +238,9 @@ class Trainer:
         if self.val_loader is not None:
             self.val_loss_metric.reset()
             self.val_acc_metric.reset()
+        if self.averaged_model is not None:
+            self.avg_model_loss_metric.reset()
+            self.avg_model_acc_metric.reset()
 
     def _epoch_str(self, epoch: int, epoch_time: float):
         s = f"Epoch {epoch} "
@@ -282,6 +249,11 @@ class Trainer:
         if self.val_loader is not None:
             s += f"| Val loss: {self.val_loss_metric.compute():.3f} "
             s += f"| Val acc: {self.val_acc_metric.compute():.3f} "
+            if self.averaged_model is not None:
+                s += (
+                    f"| Avg model val loss: {self.avg_model_loss_metric.compute():.3f} "
+                )
+                s += f"| Avg model val acc: {self.avg_model_acc_metric.compute():.3f} "
         s += f"| Epoch time: {epoch_time:.1f}s"
 
         return s
@@ -294,6 +266,14 @@ class Trainer:
             self.writer.add_scalar("Loss/val", self.val_loss_metric.compute(), epoch)
             self.writer.add_scalar("Accuracy/val", self.val_acc_metric.compute(), epoch)
 
+            if self.averaged_model is not None:
+                self.writer.add_scalar(
+                    "Loss/averaged_val", self.avg_model_loss_metric.compute(), epoch
+                )
+                self.writer.add_scalar(
+                    "Accuracy/averaged_val", self.avg_model_acc_metric.compute(), epoch
+                )
+
     def _save_model(self, path, epoch):
         obj = {
             "epoch": epoch + 1,
@@ -302,7 +282,14 @@ class Trainer:
             "scheduler": self.scheduler.state_dict()
             if self.scheduler is not None
             else None,
-            "scaler": self.scaler.state_dict() if self.mixed_precision else None,
+        }
+        torch.save(obj, os.path.join(self.save_path, path))
+
+    def _save_averaged_model(self, path, epoch):
+        obj = {
+            "epoch": epoch + 1,
+            "model": self.averaged_model.module.state_dict(),
+            "decay": self.averaged_model.decay,
         }
         torch.save(obj, os.path.join(self.save_path, path))
 
@@ -315,9 +302,6 @@ class Trainer:
 
         if self.scheduler:
             self.scheduler.load_state_dict(checkpoint["scheduler"])
-
-        if self.mixed_precision and "scaler" in checkpoint:
-            self.scaler.load_state_dict(checkpoint["scheduler"])
 
         if self.start_epoch > self.epochs:
             raise ValueError("Starting epoch is larger than total epochs")

@@ -4,6 +4,7 @@ defaults:
   - hparams: default
   - optimizer: sgd
   - scheduler: multistep
+  - averaged: ema
   - misc: tune_misc
   - hydra/sweeper: optuna
   - hydra/job_logging: custom

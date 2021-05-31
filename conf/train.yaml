@@ -4,6 +4,7 @@ defaults:
   - hparams: default_he
   - optimizer: momentum
   - scheduler: multistep_he
+  - averaged: ema
   - misc: train_misc
   - hydra/job_logging: custom
   - hydra/output: custom
