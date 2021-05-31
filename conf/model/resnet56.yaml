@@ -1,5 +1,5 @@
 # @package _group_
 # From He et al. paper, specifically designed for resnet
-_target_: src.network.resnet_cifar.resnet52
+_target_: src.network.resnet_cifar.resnet56
 num_classes: 10
 # more info: https://hydra.cc/docs/patterns/specializing_config

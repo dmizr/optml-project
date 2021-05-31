@@ -21,6 +21,8 @@ Reference:
 If you use this implementation in you work, please don't forget to mention the
 author, Yerlan Idelbayev.
 '''
+from typing import Any
+
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -100,25 +102,25 @@ class ResNetCIFAR(nn.Module):
         return out
 
 
-def resnet20():
-    return ResNetCIFAR(BasicBlock, [3, 3, 3])
+def resnet20(**kwargs: Any) -> ResNetCIFAR:
+    return ResNetCIFAR(BasicBlock, [3, 3, 3], **kwargs)
 
 
-def resnet32():
-    return ResNetCIFAR(BasicBlock, [5, 5, 5])
+def resnet32(**kwargs: Any) -> ResNetCIFAR:
+    return ResNetCIFAR(BasicBlock, [5, 5, 5], **kwargs)
 
 
-def resnet44():
-    return ResNetCIFAR(BasicBlock, [7, 7, 7])
+def resnet44(**kwargs: Any) -> ResNetCIFAR:
+    return ResNetCIFAR(BasicBlock, [7, 7, 7], **kwargs)
 
 
-def resnet56():
-    return ResNetCIFAR(BasicBlock, [9, 9, 9])
+def resnet56(**kwargs: Any) -> ResNetCIFAR:
+    return ResNetCIFAR(BasicBlock, [9, 9, 9], **kwargs)
 
 
-def resnet110():
-    return ResNetCIFAR(BasicBlock, [18, 18, 18])
+def resnet110(**kwargs: Any) -> ResNetCIFAR:
+    return ResNetCIFAR(BasicBlock, [18, 18, 18], **kwargs)
 
 
-def resnet1202():
-    return ResNetCIFAR(BasicBlock, [200, 200, 200])
+def resnet1202(**kwargs: Any) -> ResNetCIFAR:
+    return ResNetCIFAR(BasicBlock, [200, 200, 200], **kwargs)
