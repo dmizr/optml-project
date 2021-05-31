@@ -1,0 +1,14 @@
+# @package _group_
+name: cifar10
+root: data/
+download: true # download if not already downloaded
+num_workers: 4
+
+train:
+  augment: true
+
+val:
+  split: 0.1 # to activate split, use value in the range [0, 1]
+  seed: 1234
+
+test:

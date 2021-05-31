@@ -1,0 +1,11 @@
+numpy
+scipy
+torch>=1.7
+torchvision
+tensorboard
+hydra-core
+optuna
+hydra-optuna-sweeper
+tqdm
+matplotlib
+seaborn

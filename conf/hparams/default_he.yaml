@@ -1,0 +1,5 @@
+# @package _group_
+# Roughly adapted, ResNet paper uses iterations instead
+epochs: 180
+batch_size: 128
+grad_clip_max_norm: null # change to float to activate

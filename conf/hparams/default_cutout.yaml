@@ -1,0 +1,4 @@
+# @package _group_
+epochs: 200
+batch_size: 128
+grad_clip_max_norm: null # change to float to activate
