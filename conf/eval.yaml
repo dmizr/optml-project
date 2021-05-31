@@ -1,6 +1,6 @@
 defaults:
   - dataset: cifar10
-  - model: resnet56
+  - model: resnet20
   - misc: eval_misc
   - hydra/job_logging: custom
   - hydra/output: custom

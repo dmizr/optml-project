@@ -1,6 +1,6 @@
 defaults:
   - dataset: cifar10
-  - model: resnet56
+  - model: resnet20
   - hparams: default_he
   - optimizer: momentum
   - scheduler: multistep_he
