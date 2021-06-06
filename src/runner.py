@@ -18,6 +18,8 @@ from src.scheduler import ExponentialDecayLR
 from src.trainer import Trainer
 from src.transform import cifar10_transform
 
+from src.utils import set_global_seed
+
 
 def train(cfg: DictConfig):
     """Trains model from config
@@ -34,6 +36,10 @@ def train(cfg: DictConfig):
 
     # Device
     device = get_device(cfg)
+
+    # Global seed
+    if cfg.global_seed is not None:
+        set_global_seed(cfg.global_seed, use_cuda=(device.type == "cuda"))
 
     # Data
     train_loader, val_loader, test_loader = get_loaders(cfg)

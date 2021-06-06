@@ -1,11 +1,24 @@
 import logging
 from typing import Union
 
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf
 from scipy.stats import truncnorm
 
+def set_global_seed(seed: int, use_cuda: bool = True) -> None:
+
+    random.seed(seed)  # python random generator
+    np.random.seed(seed)  # numpy random generator
+    torch.manual_seed(seed)
+
+    if use_cuda:
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)  # gpu vars
+        torch.backends.cudnn.deterministic = True  # needed
+        torch.backends.cudnn.benchmark = False
 
 def display_config(cfg: DictConfig) -> None:
     """Displays the configuration"""

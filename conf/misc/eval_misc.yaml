@@ -2,6 +2,7 @@
 checkpoint: ??? # add checkpoint path here
 auto_cpu_if_no_gpu: true
 device: cuda:0
+global_seed: null
 
 hparams:
   batch_size: 32 # change if needed
