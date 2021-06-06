@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import time
 from typing import Any, Optional
@@ -90,6 +91,9 @@ class Trainer:
 
         self.avg_model_loss_metric = LossMetric()
         self.avg_model_acc_metric = AccuracyMetric(k=1)
+
+        self.best_val_loss = math.inf
+        self.best_avg_val_loss = math.inf
 
     def train(self) -> None:
         """Trains the model"""
@@ -227,10 +231,28 @@ class Trainer:
         # Save model
         if self.save_path is not None:
             self._save_model(os.path.join(self.save_path, "most_recent.pt"), epoch)
+            # Save averaged model if loss is minimal
+            if self.val_loader is not None:
+                val_loss = self.val_loss_metric.compute()
+                if self.best_val_loss > val_loss:
+                    self.best_val_loss = val_loss
+                    self._save_model(
+                        os.path.join(self.save_path, "best_model.pt"), epoch
+                    )
+
             if self.averaged_model is not None:
                 self._save_averaged_model(
                     os.path.join(self.save_path, "averaged_most_recent.pt"), epoch
                 )
+                # Save averaged model if loss is minimal
+                if self.val_loader is not None:
+                    avg_val_loss = self.avg_model_loss_metric.compute()
+                    if self.best_avg_val_loss > avg_val_loss:
+                        self.best_val_loss = avg_val_loss
+                        self._save_model(
+                            os.path.join(self.save_path, "best_averaged_model.pt"),
+                            epoch,
+                        )
 
         # Clear metrics
         self.train_loss_metric.reset()

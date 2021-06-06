@@ -90,81 +90,63 @@ def train(cfg: DictConfig):
     # Launch training process
     trainer.train()
 
-    # Train evaluation
-    def end_eval(model, on_averaged=False):
-        # End of training & model evaluation
-        train_acc, val_acc, test_acc = None, None, None
+    def write_eval(writer, train_acc, val_acc, test_acc, prefix=""):
+        if train_acc:
+            writer.add_scalar(f"Eval/Accuracy/{prefix}train", train_acc, -1)
+        if val_acc:
+            writer.add_scalar(f"Eval/Accuracy/{prefix}val", val_acc, -1)
+        if test_acc:
+            writer.add_scalar(f"Eval/Accuracy/{prefix}test", test_acc, -1)
 
-        if train_loader is not None:
-            logger.info("Evaluating on training data")
-            evaluator = Evaluator(
-                model=model, device=device, loader=train_loader, checkpoint_path=None
-            )
-            train_acc = evaluator.evaluate()
+    # Evaluate
+    cfg.dataset.download = False
+    accuracies = {}
 
-            if writer:
-                suffix = "averaged_train" if on_averaged else "train"
-                writer.add_scalar(f"Eval/Accuracy/{suffix}", train_acc, -1)
+    # Final model
+    logger.info("Final model")
+    model_path = os.path.join(save_path, "final_model.pt")
+    train_acc, val_acc, test_acc = evaluate(cfg, model, model_path)
+    accuracies["final"] = (train_acc, val_acc, test_acc)
+    write_eval(writer, train_acc, val_acc, test_acc, prefix="final_")
 
-        # Val evaluation
-        if val_loader is not None:
-            logger.info("Evaluating on validation data")
-            evaluator = Evaluator(
-                model=model, device=device, loader=val_loader, checkpoint_path=None
-            )
-            val_acc = evaluator.evaluate()
-
-            if writer:
-                suffix = "averaged_val" if on_averaged else "val"
-                writer.add_scalar(f"Eval/Accuracy/{suffix}", val_acc, -1)
-
-        # Test evaluation
-        if test_loader is not None:
-            logger.info("Evaluating on test data")
-            evaluator = Evaluator(
-                model=model, device=device, loader=test_loader, checkpoint_path=None
-            )
-            test_acc = evaluator.evaluate()
-
-            if writer:
-                suffix = "averaged_test" if on_averaged else "test"
-                writer.add_scalar(f"Eval/Accuracy/{suffix}", test_acc, -1)
-
-        # # Store hyper-parameters and accuracies in results/ directory
-        # if cfg.tensorboard:
-        #     res_path = hydra.utils.to_absolute_path(f"results/{cfg.dataset.name}/")
-        #     hparam_dict = flatten(OmegaConf.to_container(cfg, resolve=True))
-        #     acc_dict = {
-        #         name: acc
-        #         for name, acc in (
-        #             ["train_acc", train_acc],
-        #             ["val_acc", val_acc],
-        #             ["test_acc", test_acc],
-        #         )
-        #         if acc is not None
-        #     }
-        #
-        #     with SummaryWriter(res_path) as w:
-        #         w.add_hparams(hparam_dict, acc_dict)
-
-        return train_acc, val_acc, test_acc
-
-    train_acc, val_acc, test_acc = end_eval(model, on_averaged=False)
+    # Final averaged model
     if averaged_model is not None:
-        avg_train_acc, avg_val_acc, avg_test_acc = end_eval(
-            averaged_model.module, on_averaged=True
-        )
-    else:
-        avg_train_acc, avg_val_acc, avg_test_acc = None, None, None
+        logger.info("Final averaged model")
+        model_path = os.path.join(save_path, "final_averaged_model.pt")
+        train_acc, val_acc, test_acc = evaluate(cfg, model, model_path)
+        accuracies["final_averaged"] = (train_acc, val_acc, test_acc)
+        write_eval(writer, train_acc, val_acc, test_acc, prefix="final_averaged_")
 
-    return (train_acc, val_acc, test_acc), (avg_train_acc, avg_val_acc, avg_test_acc)
+    if val_loader is not None:
+        # Best model
+        logger.info("Best model")
+        model_path = os.path.join(save_path, "best_model.pt")
+        train_acc, val_acc, test_acc = evaluate(cfg, model, model_path)
+        accuracies["best"] = (train_acc, val_acc, test_acc)
+        write_eval(writer, train_acc, val_acc, test_acc, prefix="best_")
+
+        # Best averaged model
+        if averaged_model is not None:
+            logger.info("Best model")
+            model_path = os.path.join(save_path, "best_averaged_model.pt")
+            train_acc, val_acc, test_acc = evaluate(cfg, model, model_path)
+            accuracies["best_averaged"] = (train_acc, val_acc, test_acc)
+            write_eval(writer, train_acc, val_acc, test_acc, prefix="best_averaged")
+
+    return accuracies
 
 
-def evaluate(cfg: DictConfig) -> None:
+def evaluate(
+    cfg: DictConfig,
+    model: Optional[torch.nn.Module] = None,
+    checkpoint_path: Optional[str] = None,
+):
     """Evaluates model from config
 
     Args:
         cfg: Hydra config
+        model: Overrides model from config if provided
+        checkpoint_path: Overrides checkpoint from config if provided
     """
     # Logger
     logger = logging.getLogger()
@@ -176,9 +158,14 @@ def evaluate(cfg: DictConfig) -> None:
     train_loader, val_loader, test_loader = get_loaders(cfg)
 
     # Model
-    model: torch.nn.Module = instantiate(cfg.model).to(device)
+    if model is None:
+        model: torch.nn.Module = instantiate(cfg.model).to(device)
 
-    checkpoint_path = hydra.utils.to_absolute_path(cfg.checkpoint)
+    # Load from config if checkpoint path is not provided
+    if checkpoint_path is None:
+        checkpoint_path = hydra.utils.to_absolute_path(cfg.checkpoint)
+
+    train_acc, val_acc, test_acc = None, None, None
 
     if train_loader is not None:
         logger.info("Evaluating on training data")
@@ -188,7 +175,7 @@ def evaluate(cfg: DictConfig) -> None:
             loader=train_loader,
             checkpoint_path=checkpoint_path,
         )
-        evaluator.evaluate()
+        train_acc = evaluator.evaluate()
         # Remove checkpoint loading for other loaders
         checkpoint_path = None
 
@@ -200,7 +187,7 @@ def evaluate(cfg: DictConfig) -> None:
             loader=test_loader,
             checkpoint_path=checkpoint_path,
         )
-        evaluator.evaluate()
+        val_acc = evaluator.evaluate()
         # Remove checkpoint loading for other loaders
         checkpoint_path = None
 
@@ -212,7 +199,9 @@ def evaluate(cfg: DictConfig) -> None:
             loader=test_loader,
             checkpoint_path=checkpoint_path,
         )
-        evaluator.evaluate()
+        test_acc = evaluator.evaluate()
+
+    return train_acc, val_acc, test_acc
 
 
 def get_device(cfg: DictConfig) -> torch.device:
