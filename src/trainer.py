@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from src.metrics import AccuracyMetric, LossMetric
-from src.utils import weight_diff_norm
+from src.utils import weight_diff_norm, weight_norm
 
 
 class Trainer:
@@ -301,7 +301,17 @@ class Trainer:
                 self.writer.add_scalar(
                     "Accuracy/averaged_val", self.avg_model_acc_metric.compute(), epoch
                 )
-                self.writer.add_scalar("Model/weight_diff", self.weight_diff, epoch)
+                self.writer.add_scalar(
+                    "Model/model_weight_norm", weight_norm(self.model), epoch
+                )
+                self.writer.add_scalar(
+                    "Model/avg_model_weight_norm",
+                    weight_norm(self.averaged_model.module),
+                    epoch,
+                )
+                self.writer.add_scalar(
+                    "Model/weight_diff_norm", self.weight_diff, epoch
+                )
 
     def _save_model(self, path, epoch):
         obj = {

@@ -80,3 +80,15 @@ def weight_diff_norm(model: nn.Module, ema_model: nn.Module) -> float:
     l2_norm = torch.sqrt(l2_norm).item()
 
     return l2_norm
+
+
+def weight_norm(model: nn.Module) -> float:
+    """Computes the L2 norm of weights in a model"""
+    l2_norm = 0
+
+    for param in model.parameters():
+        l2_norm += torch.linalg.norm(param) ** 2
+
+    l2_norm = torch.sqrt(l2_norm).item()
+
+    return l2_norm
