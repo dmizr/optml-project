@@ -40,6 +40,7 @@ def train(cfg: DictConfig):
 
     # Model
     # Use Hydra's instantiation to initialize directly from the config file
+
     model: torch.nn.Module = instantiate(cfg.model).to(device)
     loss_fn: torch.nn.Module = nn.CrossEntropyLoss().to(device)
     optimizer: torch.optim.Optimizer = instantiate(cfg.optimizer, model.parameters())
@@ -127,7 +128,7 @@ def train(cfg: DictConfig):
 
         # Best averaged model
         if averaged_model is not None:
-            logger.info("Best model")
+            logger.info("Best averaged model")
             model_path = os.path.join(save_path, "best_averaged_model.pt")
             train_acc, val_acc, test_acc = evaluate(cfg, model, model_path)
             accuracies["best_averaged"] = (train_acc, val_acc, test_acc)
