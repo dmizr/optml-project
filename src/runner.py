@@ -48,7 +48,9 @@ def train(cfg: DictConfig):
 
     # Averaged model
     averaged_model: Optional[ModelEmaV2] = (
-        instantiate(cfg.averaged, model) if cfg.averaged is not None else None
+        instantiate(cfg.averaged, model, device=device)
+        if cfg.averaged is not None
+        else None
     )
 
     # Paths

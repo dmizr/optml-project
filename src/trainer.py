@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from src.metrics import AccuracyMetric, LossMetric
+from src.utils import weight_diff_norm
 
 
 class Trainer:
@@ -90,6 +91,8 @@ class Trainer:
 
         self.avg_model_loss_metric = LossMetric()
         self.avg_model_acc_metric = AccuracyMetric(k=1)
+
+        self.weight_diff = None
 
     def train(self) -> None:
         """Trains the model"""
@@ -217,6 +220,9 @@ class Trainer:
         pbar.close()
 
     def _end_loop(self, epoch: int, epoch_time: float):
+        if self.averaged_model is not None:
+            self.weight_diff = weight_diff_norm(self.model, self.averaged_model)
+
         # Print epoch results
         self.logger.info(self._epoch_str(epoch, epoch_time))
 
@@ -254,6 +260,7 @@ class Trainer:
                     f"| Avg model val loss: {self.avg_model_loss_metric.compute():.3f} "
                 )
                 s += f"| Avg model val acc: {self.avg_model_acc_metric.compute():.3f} "
+                s += f"| Weight diff: {self.weight_diff:.3f} "
         s += f"| Epoch time: {epoch_time:.1f}s"
 
         return s
@@ -273,6 +280,7 @@ class Trainer:
                 self.writer.add_scalar(
                     "Accuracy/averaged_val", self.avg_model_acc_metric.compute(), epoch
                 )
+                self.writer.add_scalar("Model/weight_diff", self.weight_diff, epoch)
 
     def _save_model(self, path, epoch):
         obj = {

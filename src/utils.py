@@ -1,6 +1,8 @@
 import logging
 from typing import Union
 
+import torch
+import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf
 from scipy.stats import truncnorm
 
@@ -51,3 +53,15 @@ def truncated_normal(size, threshold=1):
 
     """
     return truncnorm.rvs(-threshold, threshold, size=size)
+
+
+def weight_diff_norm(model: nn.Module, ema_model: nn.Module) -> float:
+    """Computes the L2 norm of the difference in weights between two models"""
+    l2_norm = 0
+
+    for param1, param2 in zip(model.parameters(), ema_model.parameters()):
+        l2_norm += torch.linalg.norm(param1 - param2) ** 2
+
+    l2_norm = torch.sqrt(l2_norm).item()
+
+    return l2_norm
