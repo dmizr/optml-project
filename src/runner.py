@@ -17,7 +17,6 @@ from src.evaluator import Evaluator
 from src.scheduler import ExponentialDecayLR
 from src.trainer import Trainer
 from src.transform import cifar10_transform
-
 from src.utils import set_global_seed
 
 
