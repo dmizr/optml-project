@@ -253,8 +253,8 @@ class Trainer:
                 if self.val_loader is not None:
                     avg_val_loss = self.avg_model_loss_metric.compute()
                     if self.best_avg_val_loss > avg_val_loss:
-                        self.best_val_loss = avg_val_loss
-                        self._save_model(
+                        self.best_avg_val_loss = avg_val_loss
+                        self._save_averaged_model(
                             os.path.join(self.save_path, "best_averaged_model.pt"),
                             epoch,
                         )
