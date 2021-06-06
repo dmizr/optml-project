@@ -55,7 +55,7 @@ def train(cfg: DictConfig):
     )
 
     # Paths
-    save_path = os.getcwd() if cfg.save else None
+    save_path = os.path.relpath(os.getcwd()) if cfg.save else None
     checkpoint_path = (
         hydra.utils.to_absolute_path(cfg.checkpoint)
         if cfg.checkpoint is not None
