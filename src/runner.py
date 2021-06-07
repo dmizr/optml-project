@@ -95,6 +95,7 @@ def train(cfg: DictConfig):
         grad_clip_max_norm=cfg.hparams.grad_clip_max_norm,
         writer=writer,
         save_path=save_path,
+        save_preds=cfg.save_preds,
         checkpoint_path=checkpoint_path,
         averaged_model=averaged_model,
     )

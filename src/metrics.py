@@ -27,10 +27,14 @@ class AccuracyMetric:
         k (int): Value of k for top-k accuracy
     """
 
-    def __init__(self, k: int = 1) -> None:
+    def __init__(self, k: int = 1, track_preds=False) -> None:
         self.correct = 0
         self.total = 0
         self.k = k
+        self.track_preds = track_preds
+
+        if self.track_preds:
+            self.preds_container = []
 
     def update(self, out: torch.Tensor, target: torch.Tensor) -> None:
         # Computes top-k accuracy
@@ -42,9 +46,19 @@ class AccuracyMetric:
         self.correct += total_correct
         self.total += total_samples
 
+        if self.track_preds:
+            self.preds_container.append(target_in_top_k)
+
     def compute(self) -> float:
+        if self.track_preds:
+            self.preds = torch.cat(self.preds_container, dim=0)
+
         return self.correct / self.total
 
     def reset(self) -> None:
         self.correct = 0
         self.total = 0
+
+        if self.track_preds:
+            self.preds = None
+            self.preds_container = []

@@ -51,6 +51,7 @@ class Trainer:
         save_path: Optional[str] = None,
         checkpoint_path: Optional[str] = None,
         averaged_model: Optional[ModelEmaV2] = None,
+        save_preds: bool = False,
     ) -> None:
 
         # Logging
@@ -59,6 +60,7 @@ class Trainer:
 
         # Saving
         self.save_path = save_path
+        self.save_preds = save_preds
 
         # Device
         self.device = device
@@ -88,10 +90,10 @@ class Trainer:
         self.train_acc_metric = AccuracyMetric(k=1)
 
         self.val_loss_metric = LossMetric()
-        self.val_acc_metric = AccuracyMetric(k=1)
+        self.val_acc_metric = AccuracyMetric(k=1, track_preds=self.save_preds)
 
         self.avg_model_loss_metric = LossMetric()
-        self.avg_model_acc_metric = AccuracyMetric(k=1)
+        self.avg_model_acc_metric = AccuracyMetric(k=1, track_preds=self.save_preds)
 
         self.weight_diff = None
         self.best_val_loss = math.inf
@@ -258,6 +260,19 @@ class Trainer:
                             os.path.join(self.save_path, "best_averaged_model.pt"),
                             epoch,
                         )
+
+            # Save preds
+            if self.save_preds:
+                preds_dir = os.path.join(self.save_path, "preds")
+                os.makedirs(preds_dir, exist_ok=True)
+
+                preds = self.val_acc_metric.preds
+                torch.save(preds, os.path.join(preds_dir, f"{epoch}.preds"))
+
+                preds_average = self.avg_model_acc_metric.preds
+                torch.save(
+                    preds_average, os.path.join(preds_dir, f"{epoch}_average.preds")
+                )
 
         # Clear metrics
         self.train_loss_metric.reset()
