@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 
@@ -47,11 +48,11 @@ class AccuracyMetric:
         self.total += total_samples
 
         if self.track_preds:
-            self.preds_container.append(target_in_top_k)
+            self.preds_container.append(target_in_top_k.cpu().numpy())
 
     def compute(self) -> float:
         if self.track_preds:
-            self.preds = torch.cat(self.preds_container, dim=0)
+            self.preds = np.concatenate(self.preds_container, axis=0)
 
         return self.correct / self.total
 

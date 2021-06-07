@@ -4,6 +4,7 @@ import os
 import time
 from typing import Any, Optional
 
+import numpy as np
 import torch
 import tqdm
 from timm.utils import ModelEmaV2
@@ -267,12 +268,10 @@ class Trainer:
                 os.makedirs(preds_dir, exist_ok=True)
 
                 preds = self.val_acc_metric.preds
-                torch.save(preds, os.path.join(preds_dir, f"{epoch}.preds"))
+                np.save(os.path.join(preds_dir, f"{epoch}"), preds)
 
                 preds_average = self.avg_model_acc_metric.preds
-                torch.save(
-                    preds_average, os.path.join(preds_dir, f"{epoch}_average.preds")
-                )
+                np.save(os.path.join(preds_dir, f"{epoch}_average"), preds_average)
 
         # Clear metrics
         self.train_loss_metric.reset()
