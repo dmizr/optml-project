@@ -9,6 +9,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from timm.utils import ModelEmaV2
 from torch.utils.data import DataLoader
+import torch.utils.data as data_utils
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import CIFAR10
 
@@ -17,7 +18,9 @@ from src.evaluator import Evaluator
 from src.scheduler import ExponentialDecayLR
 from src.trainer import Trainer
 from src.transform import cifar10_transform
-from src.utils import set_global_seed
+from src.utils import set_global_seed, to_clean_str
+
+
 
 
 def train(cfg: DictConfig):
@@ -245,6 +248,8 @@ def get_loaders(
     Returns:
         Tuple containing the train dataloader, validation dataloader and test dataloader
     """
+    #CIFAR10 or CIFAR10_full_GD
+    name = to_clean_str(cfg.dataset.name)
 
     train_transform = cifar10_transform(augment=cfg.dataset.train.augment)
     test_transform = cifar10_transform(augment=False)
@@ -266,15 +271,25 @@ def get_loaders(
                 split=cfg.dataset.val.split,
                 seed=cfg.dataset.val.seed,
             )
-
-        train_loader = DataLoader(
-            train_set,
-            batch_size=cfg.hparams.batch_size,
-            shuffle=True,
-            num_workers=cfg.dataset.num_workers,
-        )
+        
+        if cfg.dataset.resize : 
+            indices = torch.arange(2000)
+            train_loader = DataLoader(
+                data_utils.Subset(train_set, indices),
+                batch_size=4000,
+                shuffle=True,
+                num_workers=cfg.dataset.num_workers,
+            )
+        else : 
+            train_loader = DataLoader(
+                train_set,
+                batch_size=cfg.hparams.batch_size,
+                shuffle=True,
+                num_workers=cfg.dataset.num_workers,
+            )
     else:
         train_loader = None
+
 
     # Validation
     if cfg.dataset.val.use:
@@ -290,12 +305,22 @@ def get_loaders(
                 split=cfg.dataset.val.split,
                 seed=cfg.dataset.val.seed,
             )
-            val_loader = DataLoader(
-                val_set,
-                batch_size=cfg.hparams.batch_size,
-                shuffle=False,
-                num_workers=cfg.dataset.num_workers,
-            )
+
+            if cfg.dataset.resize : 
+                indices = torch.arange(2000)
+                val_loader = DataLoader(
+                    data_utils.Subset(val_set, indices),
+                    batch_size=4000,
+                    shuffle=False,
+                    num_workers=cfg.dataset.num_workers,
+                )
+            else : 
+                val_loader = DataLoader(
+                    val_set,
+                    batch_size=cfg.hparams.batch_size,
+                    shuffle=False,
+                    num_workers=cfg.dataset.num_workers,
+                )
 
         else:
             logger = logging.getLogger()

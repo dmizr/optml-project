@@ -7,8 +7,19 @@ import torch
 import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf
 from scipy.stats import truncnorm
+import re
 
 
+def to_clean_str(s: str) -> str:
+    """Keeps only alphanumeric characters and lowers them
+    Args:
+        s: a string
+    Returns:
+        cleaned string
+    """
+    return re.sub("[^a-zA-Z0-9]", "", s).lower()
+
+    
 def set_global_seed(seed: int, use_cuda: bool = True) -> None:
 
     random.seed(seed)  # python random generator

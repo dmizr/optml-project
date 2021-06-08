@@ -3,7 +3,7 @@ name: cifar10
 root: data/
 download: true # download if not already downloaded
 num_workers: 4
-
+resize : false
 train:
   augment: true
 
