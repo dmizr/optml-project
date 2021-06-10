@@ -276,7 +276,7 @@ def get_loaders(
             indices = torch.arange(2000)
             train_loader = DataLoader(
                 data_utils.Subset(train_set, indices),
-                batch_size=4000,
+                batch_size=cfg.hparams.batch_size,
                 shuffle=True,
                 num_workers=cfg.dataset.num_workers,
             )
