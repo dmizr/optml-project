@@ -14,7 +14,6 @@ from torchvision.datasets import CIFAR10
 
 from src.dataset import split_dataset
 from src.evaluator import Evaluator
-from src.scheduler import ExponentialDecayLR
 from src.trainer import Trainer
 from src.transform import cifar10_transform
 from src.utils import set_global_seed
@@ -49,8 +48,13 @@ def train(cfg: DictConfig):
     model: torch.nn.Module = instantiate(cfg.model).to(device)
     loss_fn: torch.nn.Module = nn.CrossEntropyLoss().to(device)
     optimizer: torch.optim.Optimizer = instantiate(cfg.optimizer, model.parameters())
+
+    # Scheduler
+    if "t_total" in cfg.scheduler and cfg.scheduler.t_total == "auto":
+        cfg.scheduler.t_total = len(train_loader) * cfg.hparams.epochs
     scheduler = instantiate(cfg.scheduler, optimizer)
-    update_sched_on_iter = True if isinstance(scheduler, ExponentialDecayLR) else False
+    # Iter schedulers all have warmup steps here
+    update_sched_on_iter = True if "warmup_steps" in cfg.scheduler else False
 
     # Averaged model
     averaged_model: Optional[ModelEmaV2] = (

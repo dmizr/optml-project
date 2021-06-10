@@ -1,85 +1,73 @@
-import warnings
+"""
+Directly copy-pasted from: https://github.com/jeonsworld/ViT-pytorch/blob/main/utils/scheduler.py
+"""
+import math
+from torch.optim.lr_scheduler import LambdaLR
 
-import torch
 
-
-class ExponentialDecayLR(torch.optim.lr_scheduler.LambdaLR):
-    """Implements ExponentialDecay scheduler from Keras.
-    To match Keras behaviour, call scheduler at each optimizer step
-    (usually at each iteration).
-    When last_epoch=-1, sets initial lr as lr.
-
-    Sets the learning rate to:
-    lr = initial_lr * (decay_rate ^ (step / decay_step))
-
-    If staircase is True, step / decay_steps is an integer division.
-
-    Args:
-        optimizer (Optimizer): Wrapped optimizer
-        decay_steps (int): Must be positive, see the decay computation above.
-        decay_rate (float): The decay rate
-        staircase (bool): If True, the learning rate is decayed at discrete intervals.
-        last_epoch (int): The index of last epoch. Default: -1.
+class WarmupConstantSchedule(LambdaLR):
+    """Linear warmup and then constant.
+    Linearly increases learning rate schedule from 0 to 1 over `warmup_steps` training steps.
+    Keeps learning rate schedule equal to 1. after warmup_steps.
     """
 
-    def __init__(
-        self,
-        optimizer: torch.optim.Optimizer,
-        decay_steps: int,
-        decay_rate: float,
-        staircase: bool = False,
-        last_epoch: int = -1,
-    ) -> None:
+    def __init__(self, optimizer, warmup_steps, last_epoch=-1):
+        self.warmup_steps = warmup_steps
+        super(WarmupConstantSchedule, self).__init__(
+            optimizer, self.lr_lambda, last_epoch=last_epoch
+        )
 
-        self.decay_steps = decay_steps
-        self.decay_rate = decay_rate
-        self.staircase = staircase
-
-        if staircase:
-            decay = lambda step: decay_rate ** (int(step / decay_steps))
-        else:
-            decay = lambda step: decay_rate ** (step / decay_steps)
-
-        super().__init__(optimizer, lr_lambda=decay, last_epoch=last_epoch)
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        # Bypass save state warning from _LambdaLR scheduler
-        with warnings.catch_warnings(record=True):
-            super().load_state_dict(state_dict)
-
-    def state_dict(self) -> dict:
-        # Bypass save state warning from _LambdaLR scheduler
-        # More info: https://github.com/pytorch/pytorch/issues/46405
-        with warnings.catch_warnings(record=True):
-            return super().state_dict()
+    def lr_lambda(self, step):
+        if step < self.warmup_steps:
+            return float(step) / float(max(1.0, self.warmup_steps))
+        return 1.0
 
 
-class ConstantLR(torch.optim.lr_scheduler.LambdaLR):
-    """Keeps the learning rate constant (does nothing).
-
-    Can be used when no scheduler is needed, avoids modifying the training loop.
-
-    Args:
-        optimizer (Optimizer): Wrapped optimizer
-        last_epoch (int): The index of last epoch. Default: -1.
+class WarmupLinearSchedule(LambdaLR):
+    """Linear warmup and then linear decay.
+    Linearly increases learning rate from 0 to 1 over `warmup_steps` training steps.
+    Linearly decreases learning rate from 1. to 0. over remaining `t_total - warmup_steps` steps.
     """
 
-    def __init__(
-        self,
-        optimizer: torch.optim.Optimizer,
-        last_epoch: int = -1,
-    ) -> None:
+    def __init__(self, optimizer, warmup_steps, t_total, last_epoch=-1):
+        self.warmup_steps = warmup_steps
+        self.t_total = t_total
+        super(WarmupLinearSchedule, self).__init__(
+            optimizer, self.lr_lambda, last_epoch=last_epoch
+        )
 
-        decay = lambda epoch: 1
-        super().__init__(optimizer, lr_lambda=decay, last_epoch=last_epoch)
+    def lr_lambda(self, step):
+        if step < self.warmup_steps:
+            return float(step) / float(max(1, self.warmup_steps))
+        return max(
+            0.0,
+            float(self.t_total - step)
+            / float(max(1.0, self.t_total - self.warmup_steps)),
+        )
 
-    def load_state_dict(self, state_dict: dict) -> None:
-        # Bypass save state warning from _LambdaLR scheduler
-        with warnings.catch_warnings(record=True):
-            super().load_state_dict(state_dict)
 
-    def state_dict(self) -> dict:
-        # Bypass save state warning from _LambdaLR scheduler
-        # More info: https://github.com/pytorch/pytorch/issues/46405
-        with warnings.catch_warnings(record=True):
-            return super().state_dict()
+class WarmupCosineSchedule(LambdaLR):
+    """Linear warmup and then cosine decay.
+    Linearly increases learning rate from 0 to 1 over `warmup_steps` training steps.
+    Decreases learning rate from 1. to 0. over remaining `t_total - warmup_steps` steps following a cosine curve.
+    If `cycles` (default=0.5) is different from default, learning rate follows cosine function after warmup.
+    """
+
+    def __init__(self, optimizer, warmup_steps, t_total, cycles=0.5, last_epoch=-1):
+        self.warmup_steps = warmup_steps
+        self.t_total = t_total
+        self.cycles = cycles
+        super(WarmupCosineSchedule, self).__init__(
+            optimizer, self.lr_lambda, last_epoch=last_epoch
+        )
+
+    def lr_lambda(self, step):
+        if step < self.warmup_steps:
+            return float(step) / float(max(1.0, self.warmup_steps))
+        # progress after warmup
+        progress = float(step - self.warmup_steps) / float(
+            max(1, self.t_total - self.warmup_steps)
+        )
+        return max(
+            0.0, 0.5 * (1.0 + math.cos(math.pi * float(self.cycles) * 2.0 * progress))
+        )
