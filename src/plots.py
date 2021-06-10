@@ -197,3 +197,4 @@ def plot_persistance(
     plt.xlabel("Epoch")
     plt.ylabel("Samples")
     plt.savefig("persistance.png")
+    return top_n

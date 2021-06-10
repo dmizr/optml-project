@@ -1,4 +1,5 @@
 defaults:
+  - dataset: cifar10
   - hydra/job_logging: custom
   - hydra/output: custom
 preds_path: ???
