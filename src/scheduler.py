@@ -1,7 +1,8 @@
 """
-Directly copy-pasted from: https://github.com/jeonsworld/ViT-pytorch/blob/main/utils/scheduler.py
+Directly copy-pasted from: https://github.com/jeonsworld/ViT-pytorch/
 """
 import math
+
 from torch.optim.lr_scheduler import LambdaLR
 
 

@@ -312,7 +312,9 @@ class Trainer:
                 self.writer.add_scalar(
                     "Model/weight_diff_norm", self.weight_diff, epoch
                 )
-                self.writer.add_scalar("Model/lr", self.scheduler.get_last_lr()[0], epoch)
+                self.writer.add_scalar(
+                    "Model/lr", self.scheduler.get_last_lr()[0], epoch
+                )
 
     def _save_model(self, path, epoch):
         obj = {
