@@ -1,0 +1,4 @@
+# @package _group_
+_target_: src.scheduler.WarmupLinearSchedule
+warmup_steps: 0
+t_total: auto

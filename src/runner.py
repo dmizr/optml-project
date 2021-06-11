@@ -14,7 +14,6 @@ from torchvision.datasets import CIFAR10
 
 from src.dataset import split_dataset
 from src.evaluator import Evaluator
-from src.scheduler import ExponentialDecayLR
 from src.trainer import Trainer
 from src.transform import cifar10_transform
 from src.utils import set_global_seed
@@ -49,8 +48,13 @@ def train(cfg: DictConfig):
     model: torch.nn.Module = instantiate(cfg.model).to(device)
     loss_fn: torch.nn.Module = nn.CrossEntropyLoss().to(device)
     optimizer: torch.optim.Optimizer = instantiate(cfg.optimizer, model.parameters())
+
+    # Scheduler
+    if "t_total" in cfg.scheduler and cfg.scheduler.t_total == "auto":
+        cfg.scheduler.t_total = len(train_loader) * cfg.hparams.epochs
     scheduler = instantiate(cfg.scheduler, optimizer)
-    update_sched_on_iter = True if isinstance(scheduler, ExponentialDecayLR) else False
+    # Iter schedulers all have warmup steps here
+    update_sched_on_iter = True if "warmup_steps" in cfg.scheduler else False
 
     # Averaged model
     averaged_model: Optional[ModelEmaV2] = (
@@ -100,11 +104,11 @@ def train(cfg: DictConfig):
 
     def write_eval(writer, train_acc, val_acc, test_acc, prefix=""):
         if train_acc:
-            writer.add_scalar(f"Eval/Accuracy/{prefix}train", train_acc, -1)
+            writer.add_scalar(f"Eval/Accuracy/{prefix}train", train_acc, 1)
         if val_acc:
-            writer.add_scalar(f"Eval/Accuracy/{prefix}val", val_acc, -1)
+            writer.add_scalar(f"Eval/Accuracy/{prefix}val", val_acc, 1)
         if test_acc:
-            writer.add_scalar(f"Eval/Accuracy/{prefix}test", test_acc, -1)
+            writer.add_scalar(f"Eval/Accuracy/{prefix}test", test_acc, 1)
 
     # Evaluate
     cfg.dataset.download = False
@@ -139,7 +143,7 @@ def train(cfg: DictConfig):
             model_path = os.path.join(save_path, "best_averaged_model.pt")
             train_acc, val_acc, test_acc = evaluate(cfg, model, model_path)
             accuracies["best_averaged"] = (train_acc, val_acc, test_acc)
-            write_eval(writer, train_acc, val_acc, test_acc, prefix="best_averaged")
+            write_eval(writer, train_acc, val_acc, test_acc, prefix="best_averaged_")
 
     return accuracies
 
