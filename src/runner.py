@@ -104,11 +104,11 @@ def train(cfg: DictConfig):
 
     def write_eval(writer, train_acc, val_acc, test_acc, prefix=""):
         if train_acc:
-            writer.add_scalar(f"Eval/Accuracy/{prefix}train", train_acc, -1)
+            writer.add_scalar(f"Eval/Accuracy/{prefix}train", train_acc, 1)
         if val_acc:
-            writer.add_scalar(f"Eval/Accuracy/{prefix}val", val_acc, -1)
+            writer.add_scalar(f"Eval/Accuracy/{prefix}val", val_acc, 1)
         if test_acc:
-            writer.add_scalar(f"Eval/Accuracy/{prefix}test", test_acc, -1)
+            writer.add_scalar(f"Eval/Accuracy/{prefix}test", test_acc, 1)
 
     # Evaluate
     cfg.dataset.download = False
@@ -143,7 +143,7 @@ def train(cfg: DictConfig):
             model_path = os.path.join(save_path, "best_averaged_model.pt")
             train_acc, val_acc, test_acc = evaluate(cfg, model, model_path)
             accuracies["best_averaged"] = (train_acc, val_acc, test_acc)
-            write_eval(writer, train_acc, val_acc, test_acc, prefix="best_averaged")
+            write_eval(writer, train_acc, val_acc, test_acc, prefix="best_averaged_")
 
     return accuracies
 
