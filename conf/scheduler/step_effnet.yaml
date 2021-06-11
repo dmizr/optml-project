@@ -1,4 +1,3 @@
-# @package _group_
 # Decreases it using the 0.97 constant used in many recent papers (e.g. EffNet)
 _target_: torch.optim.lr_scheduler.StepLR
 step_size: 2
