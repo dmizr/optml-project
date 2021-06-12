@@ -1,4 +1,3 @@
-# @package _group_
 # Setting from cutout paper
 _target_: torch.optim.SGD
 lr: 0.1

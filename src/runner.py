@@ -196,7 +196,7 @@ def evaluate(
         evaluator = Evaluator(
             model=model,
             device=device,
-            loader=test_loader,
+            loader=val_loader,
             checkpoint_path=checkpoint_path,
         )
         val_acc = evaluator.evaluate()

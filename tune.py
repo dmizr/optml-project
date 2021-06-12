@@ -10,8 +10,12 @@ def tune(cfg: DictConfig):
     utils.display_config(cfg)
     accuracies = runner.train(cfg)
 
-    return accuracies["final_averaged"][1]
+    if cfg.maximize_averaged:
+        return accuracies["final_averaged"][1]
+    else:
+        return accuracies["final"][1]
 
 
 if __name__ == "__main__":
     tune()
+

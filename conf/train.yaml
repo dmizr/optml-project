@@ -6,5 +6,5 @@ defaults:
   - scheduler: multistep_he
   - averaged: ema
   - misc: train_misc
-  - hydra/job_logging: custom
-  - hydra/output: custom
+  - override hydra/job_logging: custom
+  - override hydra/output: custom

@@ -1,4 +1,3 @@
-# @package _group_
 # From He et al., specifically designed for CIFAR
 _target_: src.network.resnet_cifar.resnet20
 num_classes: 10

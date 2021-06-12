@@ -1,4 +1,3 @@
-# @package _group_
 # Roughly adapted, ResNet paper uses iterations instead
 epochs: 180
 batch_size: 128

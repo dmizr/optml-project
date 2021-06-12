@@ -1,4 +1,3 @@
-# @package _group_
 _target_: timm.utils.ModelEmaV2
 decay: 0.999
 
