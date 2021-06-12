@@ -1,0 +1,4 @@
+# Roughly adapted from ResNet paper, which uses iterations instead
+_target_: torch.optim.lr_scheduler.MultiStepLR
+milestones: [90, 135]
+gamma: 0.1

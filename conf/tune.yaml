@@ -1,9 +1,9 @@
 defaults:
   - dataset: cifar10
-  - model: resnet18
-  - hparams: default
-  - optimizer: sgd
-  - scheduler: multistep
+  - model: resnet20
+  - hparams: default_he
+  - optimizer: momentum
+  - scheduler: multistep_he
   - averaged: ema
   - misc: tune_misc
   - override hydra/sweeper: optuna
@@ -18,5 +18,5 @@ hydra:
     direction: maximize
     study_name: ${hydra.job.name}/${dataset.name}/${now:%Y-%m-%d_%H-%M-%S}
     storage: sqlite:///results/tuning.db
-    n_trials: 20
+    n_trials: 30
     n_jobs: 1
