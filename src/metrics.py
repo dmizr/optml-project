@@ -51,9 +51,6 @@ class AccuracyMetric:
             self.preds_container.append(target_in_top_k.cpu().numpy())
 
     def compute(self) -> float:
-        if self.track_preds:
-            self.preds = np.concatenate(self.preds_container, axis=0)
-
         return self.correct / self.total
 
     def reset(self) -> None:
@@ -63,3 +60,6 @@ class AccuracyMetric:
         if self.track_preds:
             self.preds = None
             self.preds_container = []
+
+    def get_preds(self) -> np.ndarray:
+        return np.concatenate(self.preds_container, axis=0)

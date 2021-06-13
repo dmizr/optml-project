@@ -267,10 +267,10 @@ class Trainer:
                 preds_dir = os.path.join(self.save_path, "preds")
                 os.makedirs(preds_dir, exist_ok=True)
 
-                preds = self.val_acc_metric.preds
+                preds = self.val_acc_metric.get_preds()
                 np.save(os.path.join(preds_dir, f"{epoch}"), preds)
 
-                preds_average = self.avg_model_acc_metric.preds
+                preds_average = self.avg_model_acc_metric.get_preds()
                 np.save(os.path.join(preds_dir, f"{epoch}_average"), preds_average)
 
         # Clear metrics

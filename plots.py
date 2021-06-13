@@ -11,13 +11,13 @@ from torchvision.datasets import CIFAR10
 
 import src.utils as utils
 from src.dataset import split_dataset
-from src.transform import cifar10_transform
 from src.plots import (
     plot_misclassification,
     plot_mismatch,
     plot_persistance,
     plot_stability,
 )
+from src.transform import cifar10_transform
 
 
 @hydra.main(config_path="conf", config_name="plots")
@@ -51,10 +51,15 @@ def plots(cfg: DictConfig):
     root = hydra.utils.to_absolute_path(cfg.dataset.root)
 
     val_set = dataset(
-        root, train=True, transform=cifar10_transform(augment=False), download=cfg.dataset.download,
+        root,
+        train=True,
+        transform=cifar10_transform(augment=False),
+        download=cfg.dataset.download,
     )
     _, val_set = split_dataset(
-        dataset=val_set, split=cfg.dataset.val.split, seed=cfg.dataset.val.seed,
+        dataset=val_set,
+        split=cfg.dataset.val.split,
+        seed=cfg.dataset.val.seed,
     )
 
     # plot top n persistance samples
