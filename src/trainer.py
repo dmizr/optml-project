@@ -53,6 +53,7 @@ class Trainer:
         checkpoint_path: Optional[str] = None,
         averaged_model: Optional[ModelEmaV2] = None,
         save_preds: bool = False,
+        run_averaged_on_train: bool = False,
     ) -> None:
 
         # Logging
@@ -87,14 +88,19 @@ class Trainer:
             self._load_from_checkpoint(checkpoint_path)
 
         # Metrics
+        self.run_averaged_on_train = run_averaged_on_train
+
         self.train_loss_metric = LossMetric()
         self.train_acc_metric = AccuracyMetric(k=1)
 
         self.val_loss_metric = LossMetric()
         self.val_acc_metric = AccuracyMetric(k=1, track_preds=self.save_preds)
 
-        self.avg_model_loss_metric = LossMetric()
-        self.avg_model_acc_metric = AccuracyMetric(k=1, track_preds=self.save_preds)
+        self.avg_train_loss_metric = LossMetric()
+        self.avg_train_acc_metric = AccuracyMetric(k=1)
+
+        self.avg_val_loss_metric = LossMetric()
+        self.avg_val_acc_metric = AccuracyMetric(k=1, track_preds=self.save_preds)
 
         self.weight_diff = None
         self.best_val_loss = math.inf
@@ -158,17 +164,25 @@ class Trainer:
 
             self.optimizer.step()
 
+            # Update metrics
+            self.train_loss_metric.update(loss.item(), data.shape[0])
+            self.train_acc_metric.update(out, target)
+
             # Update averaged model
             if self.averaged_model is not None:
+                if self.run_averaged_on_train:
+                    # Update averaged train metrics
+                    out = self.averaged_model.module(data)
+                    loss = self.loss_fn(out, target)
+
+                    self.avg_train_loss_metric.update(loss.item(), data.shape[0])
+                    self.avg_train_acc_metric.update(out, target)
+
                 self.averaged_model.update(self.model)
 
             # Update scheduler if it is iter-based
             if self.scheduler is not None and self.update_sched_on_iter:
                 self.scheduler.step()
-
-            # Update metrics
-            self.train_loss_metric.update(loss.item(), data.shape[0])
-            self.train_acc_metric.update(out, target)
 
             # Update progress bar
             pbar.update()
@@ -216,8 +230,8 @@ class Trainer:
                     self.val_loss_metric.update(loss.item(), data.shape[0])
                     self.val_acc_metric.update(out, target)
                 else:
-                    self.avg_model_loss_metric.update(loss.item(), data.shape[0])
-                    self.avg_model_acc_metric.update(out, target)
+                    self.avg_val_loss_metric.update(loss.item(), data.shape[0])
+                    self.avg_val_acc_metric.update(out, target)
 
                 # Update progress bar
                 pbar.update()
@@ -254,7 +268,7 @@ class Trainer:
                 )
                 # Save averaged model if loss is minimal
                 if self.val_loader is not None:
-                    avg_val_loss = self.avg_model_loss_metric.compute()
+                    avg_val_loss = self.avg_val_loss_metric.compute()
                     if self.best_avg_val_loss > avg_val_loss:
                         self.best_avg_val_loss = avg_val_loss
                         self._save_averaged_model(
@@ -270,7 +284,7 @@ class Trainer:
                 preds = self.val_acc_metric.get_preds()
                 np.save(os.path.join(preds_dir, f"{epoch}"), preds)
 
-                preds_average = self.avg_model_acc_metric.get_preds()
+                preds_average = self.avg_val_acc_metric.get_preds()
                 np.save(os.path.join(preds_dir, f"{epoch}_average"), preds_average)
 
         # Clear metrics
@@ -280,8 +294,10 @@ class Trainer:
             self.val_loss_metric.reset()
             self.val_acc_metric.reset()
         if self.averaged_model is not None:
-            self.avg_model_loss_metric.reset()
-            self.avg_model_acc_metric.reset()
+            self.avg_train_loss_metric.reset()
+            self.avg_train_acc_metric.reset()
+            self.avg_val_loss_metric.reset()
+            self.avg_val_acc_metric.reset()
 
     def _epoch_str(self, epoch: int, epoch_time: float):
         s = f"Epoch {epoch} "
@@ -290,12 +306,16 @@ class Trainer:
         if self.val_loader is not None:
             s += f"| Val loss: {self.val_loss_metric.compute():.3f} "
             s += f"| Val acc: {self.val_acc_metric.compute():.3f} "
-            if self.averaged_model is not None:
-                s += (
-                    f"| Avg model val loss: {self.avg_model_loss_metric.compute():.3f} "
-                )
-                s += f"| Avg model val acc: {self.avg_model_acc_metric.compute():.3f} "
-                s += f"| Weight diff: {self.weight_diff:.3f} "
+
+        if self.averaged_model is not None:
+            if self.run_averaged_on_train:
+                s += f"| Avg model train loss: {self.avg_train_loss_metric.compute():.3f} "
+                s += f"| Avg model train acc: {self.avg_train_acc_metric.compute():.3f} "
+            s += (
+                f"| Avg model val loss: {self.avg_val_loss_metric.compute():.3f} "
+            )
+            s += f"| Avg model val acc: {self.avg_val_acc_metric.compute():.3f} "
+            s += f"| Weight diff: {self.weight_diff:.3f} "
         s += f"| Epoch time: {epoch_time:.1f}s"
 
         return s
@@ -309,11 +329,18 @@ class Trainer:
             self.writer.add_scalar("Accuracy/val", self.val_acc_metric.compute(), epoch)
 
             if self.averaged_model is not None:
-                self.writer.add_scalar(
-                    "Loss/averaged_val", self.avg_model_loss_metric.compute(), epoch
+                if self.run_averaged_on_train:
+                    self.writer.add_scalar(
+                        "Loss/averaged_train", self.avg_train_loss_metric.compute(), epoch
+                    )
+                    self.writer.add_scalar(
+                        "Accuracy/averaged_train", self.avg_train_acc_metric.compute(), epoch
                 )
                 self.writer.add_scalar(
-                    "Accuracy/averaged_val", self.avg_model_acc_metric.compute(), epoch
+                    "Loss/averaged_val", self.avg_val_loss_metric.compute(), epoch
+                )
+                self.writer.add_scalar(
+                    "Accuracy/averaged_val", self.avg_val_acc_metric.compute(), epoch
                 )
                 self.writer.add_scalar(
                     "Model/model_weight_norm", weight_norm(self.model), epoch

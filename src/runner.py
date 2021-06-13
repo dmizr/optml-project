@@ -98,6 +98,7 @@ def train(cfg: DictConfig):
         save_preds=cfg.save_preds,
         checkpoint_path=checkpoint_path,
         averaged_model=averaged_model,
+        run_averaged_on_train=cfg.run_averaged_on_train
     )
 
     # Launch training process

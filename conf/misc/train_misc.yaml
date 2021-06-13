@@ -4,8 +4,9 @@ tensorboard: true
 auto_cpu_if_no_gpu: true
 device: cuda:0
 save: true
-save_preds: true
 global_seed: null
+save_preds: false
+run_averaged_on_train: false
 
 dataset:
   train:
