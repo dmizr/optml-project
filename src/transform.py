@@ -3,24 +3,6 @@ from typing import Callable, Tuple
 import torchvision.transforms as transforms
 
 
-def mnist_transform() -> Callable:
-    """PIL Image to Tensor transform for MNIST, with standardization
-
-    Returns:
-        transform function
-    """
-
-    # Source: https://github.com/pytorch/examples/blob/master/mnist/main.py
-    mean = (0.1307,)
-    std = (0.3081,)
-
-    transform = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize(mean, std)]
-    )
-
-    return transform
-
-
 def cifar_transform(
     mean: Tuple[float, float, float],
     std: Tuple[float, float, float],

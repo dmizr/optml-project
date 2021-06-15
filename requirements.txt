@@ -4,6 +4,8 @@ torch>=1.7
 torchvision
 tensorboard
 hydra-core>=1.1.0
+matplotlib
+seaborn
 optuna
 hydra-optuna-sweeper
 tqdm

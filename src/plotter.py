@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
+
 def plot_stability(
     preds: List[np.ndarray],
     labels: Optional[List[str]] = None,
     iters: Optional[List[int]] = None,
-    plot_accuracy: bool = True,
 ):
     """Visualize the stability of predictions"""
 
@@ -36,7 +36,7 @@ def plot_stability(
     plt.legend()
     plt.ylabel("Stability")
     plt.xlabel("Epochs")
-    plt.savefig("stability.png", bbox_inches='tight')
+    plt.savefig("stability.png", bbox_inches="tight")
 
 
 def plot_mismatch(
@@ -87,7 +87,7 @@ def plot_mismatch(
         plt.xlabel("Epochs")
         plt.ylabel("Mismatch ratio")
 
-    plt.savefig("mismatch.png", bbox_inches='tight')
+    plt.savefig("mismatch.png", bbox_inches="tight")
 
 
 def plot_misclassification(
@@ -153,13 +153,11 @@ def plot_misclassification(
         plt.ylabel("Misclassification ratio")
 
     plt.legend()
-    plt.savefig("misclassification.png", bbox_inches='tight')
+    plt.savefig("misclassification.png", bbox_inches="tight")
 
 
 def plot_persistence(
     preds: List[np.ndarray],
-    labels: Optional[List[str]] = None,
-    iters: Optional[List[int]] = None,
     n_samples: int = 10,
     sort: str = "mismatch",
 ):
@@ -198,10 +196,10 @@ def plot_persistence(
     ax = sns.heatmap(image, cmap=[cmap[0], cmap[-1]], mask=mask, annot=False)
     colorbar = ax.collections[0].colorbar
     colorbar.set_ticks([0.25, 0.75])
-    colorbar.set_ticklabels(['False', 'True'])
+    colorbar.set_ticklabels(["False", "True"])
 
     plt.yticks([i * 3 for i in range(n_samples)], range(n_samples))
     plt.xlabel("Epoch")
     plt.ylabel("Sample #")
-    plt.savefig("persistence.png", bbox_inches='tight')
+    plt.savefig("persistence.png", bbox_inches="tight")
     return top_n
