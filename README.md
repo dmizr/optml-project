@@ -13,7 +13,7 @@ This codebase is used to study exponential moving averages (EMA) in the context 
 - [Experiment logs](#experiment-logs)
 - [Project structure](#project-structure)
 - [Authors](#authors)
-- [References](#references)
+- [Credits](#credits)
 
 
 ## Dependencies
@@ -103,7 +103,7 @@ The logs of our experiments are available through [tensorboard.dev](https://tens
 - Oğuz Kaan Yüksel
 
 
-## References
+## Credits
 Many parts of this codebase come from other repositories, namely:
 
 - The code structure in this project is mostly adapted from [dmizr/phuber](https://github.com/dmizr/phuber).
