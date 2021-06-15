@@ -11,7 +11,6 @@ This codebase is used to study exponential moving averages (EMA) in the context 
 - [Dependencies](#dependencies)
 - [How to run](#how-to-run)
   - [Examples](#examples)
-  - [Run metrics and saved models](#run-metrics-and-saved-models)
 - [Experiment logs](#experiment-logs)
 - [Project structure](#project-structure)
 - [Authors](#authors)
@@ -43,6 +42,8 @@ python3 tune.py --help
 python3 plots.py --help
 ```
 
+By default, run metrics are logged to [TensorBoard](https://www.tensorflow.org/tensorboard). In addition, the saved models, training parameters and training log can be found in the run's directory, in `outputs/`.
+
 ### Examples
 To reproduce the results from Figure 1 of the report, run:
 ```
@@ -54,9 +55,6 @@ To reproduce the results from Table 2 of the report, run:
 ```
 python3 train.py --multirun model=resnet20 averaged.decay=0.9995 scheduler=constant optimizer.lr=0.5,0.2,0.1,0.05,0.02,0.01 global_seed=1234
 ```
-
-### Run metrics and saved models
-By default, run metrics are logged to [TensorBoard](https://www.tensorflow.org/tensorboard). In addition, the saved models, training parameters and training log can be found in the run's directory, in `outputs/`.
 
 ## Experiment logs
 
