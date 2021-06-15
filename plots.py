@@ -14,7 +14,7 @@ from src.dataset import split_dataset
 from src.plots import (
     plot_misclassification,
     plot_mismatch,
-    plot_persistance,
+    plot_persistence,
     plot_stability,
 )
 from src.transform import cifar10_transform
@@ -38,13 +38,13 @@ def plots(cfg: DictConfig):
 
     assert preds_a.shape == preds_b.shape, "Shape of predictions must be the same"
 
-    labels = ["Single", "Averaged"]
+    labels = ["No EMA", "EMA"]
     iters = np.arange(len(preds_a))
 
     plot_stability([preds_a, preds_b], labels, iters)
     plot_mismatch([preds_a, preds_b], labels, iters)
     plot_misclassification([preds_a, preds_b], labels, iters)
-    top_n = plot_persistance([preds_a, preds_b], labels, iters, sort="stability")
+    top_n = plot_persistence([preds_a, preds_b], labels, iters, sort="stability")
 
     # get val set
     dataset = CIFAR10
@@ -62,7 +62,7 @@ def plots(cfg: DictConfig):
         seed=cfg.dataset.val.seed,
     )
 
-    # plot top n persistance samples
+    # save top n persistence samples
     os.makedirs("samples")
     for i in top_n:
         img, _ = val_set[i]
