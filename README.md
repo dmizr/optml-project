@@ -58,10 +58,10 @@ python3 train.py --multirun model=resnet20 averaged.decay=0.9995 scheduler=const
 
 ## Experiment logs
 
-The logs for these experiments are available through [tensorboard.dev](https://tensorboard.dev/).
+The logs of our experiments are available through [tensorboard.dev](https://tensorboard.dev/).
 
-- Scheduler + decay rate sweep (Table 1, Fig. 1): [**Run 1**](https://tensorboard.dev/experiment/p9Hjq9kySPaeg84NtZX57Q) | [**Run 2**](https://tensorboard.dev/experiment/8NJxp4UgSXamjGrbUlQUxw) | [**Run 3**](https://tensorboard.dev/experiment/Wwrw9xKiQQGzwVp1DE2d2w)
-- Learning rate sweep (Table 2): [**Run**](https://tensorboard.dev/experiment/iy10jUyCQyaW62wWU7yKpw)
+- Scheduler + decay rate experiments (Table 1, Fig. 1): [**Log (Run 1)**](https://tensorboard.dev/experiment/p9Hjq9kySPaeg84NtZX57Q) | [**Log (Run 2)**](https://tensorboard.dev/experiment/8NJxp4UgSXamjGrbUlQUxw) | [**Log (Run 3)**](https://tensorboard.dev/experiment/Wwrw9xKiQQGzwVp1DE2d2w)
+- Learning rate experiment (Table 2): [**Log**](https://tensorboard.dev/experiment/iy10jUyCQyaW62wWU7yKpw)
 
 
 ## Project structure
