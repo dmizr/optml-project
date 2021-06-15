@@ -7,7 +7,6 @@ This codebase is used to study exponential moving averages (EMA) in the context 
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
 - [Dependencies](#dependencies)
 - [How to run](#how-to-run)
   - [Examples](#examples)
