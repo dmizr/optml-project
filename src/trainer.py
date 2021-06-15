@@ -33,6 +33,7 @@ class Trainer:
         save_path: folder in which to save models (disabled if None)
         checkpoint_path: path to model checkpoint, to resume training
         averaged_model: optional averaged model
+        save_preds: whether to save predictions for further analysis
 
     """
 

@@ -1,17 +1,14 @@
 import os
-from typing import List
 
 import hydra
-import matplotlib.pyplot as plt
 import numpy as np
-import torch
 import torchvision
 from omegaconf import DictConfig
 from torchvision.datasets import CIFAR10
 
 import src.utils as utils
 from src.dataset import split_dataset
-from src.plots import (
+from src.experiment_plots import (
     plot_misclassification,
     plot_mismatch,
     plot_persistence,
