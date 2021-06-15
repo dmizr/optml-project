@@ -9,7 +9,6 @@ def plot_stability(
     preds: List[np.ndarray],
     labels: Optional[List[str]] = None,
     iters: Optional[List[int]] = None,
-    plot_accuracy: bool = True,
 ):
     """Visualize the stability of predictions"""
 
@@ -159,8 +158,6 @@ def plot_misclassification(
 
 def plot_persistence(
     preds: List[np.ndarray],
-    labels: Optional[List[str]] = None,
-    iters: Optional[List[int]] = None,
     n_samples: int = 10,
     sort: str = "mismatch",
 ):

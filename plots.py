@@ -8,7 +8,7 @@ from torchvision.datasets import CIFAR10
 
 import src.utils as utils
 from src.dataset import split_dataset
-from src.experiment_plots import (
+from src.plotter import (
     plot_misclassification,
     plot_mismatch,
     plot_persistence,
