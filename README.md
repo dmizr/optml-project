@@ -61,6 +61,7 @@ The logs of our experiments are available through [TensorBoard.dev](https://tens
 
 - Scheduler + decay rate experiments (Table 1, Fig. 1): [**Log (Run 1)**](https://tensorboard.dev/experiment/p9Hjq9kySPaeg84NtZX57Q) | [**Log (Run 2)**](https://tensorboard.dev/experiment/8NJxp4UgSXamjGrbUlQUxw) | [**Log (Run 3)**](https://tensorboard.dev/experiment/Wwrw9xKiQQGzwVp1DE2d2w)
 - Learning rate experiment (Table 2): [**Log**](https://tensorboard.dev/experiment/iy10jUyCQyaW62wWU7yKpw)
+- Big network experiment: [**Log**](https://tensorboard.dev/experiment/7d2I0iYmTwS6tqgPPgaYdw)
 
 
 ## Project structure
