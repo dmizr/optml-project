@@ -48,7 +48,7 @@ To reproduce the results from Figure 1 of the report, run:
 ```
 python3 train.py --multirun model=resnet20 scheduler=multistep_he,step_effnet,constant,cosine,linear averaged.decay=0.9,0.99,0.999,0.9995,0.9997 global_seed=1111,1234,4321
 ```
-**Warning:** This code trains a ResNet-20 on CIFAR-10 **75 times**. You can train only one of these models by selecting the desired scheduler, EMA decay coefficient and seed.
+⚠️ This command will run a sweep over all the schedulers, EMA decay coefficients and seeds. To train the model only once, select one scheduler, decay coefficient and seed.
 
 To reproduce the results from Table 2 of the report, run:
 ```
@@ -106,7 +106,7 @@ The logs of our experiments are available through [tensorboard.dev](https://tens
 ## Credits
 Many parts of this codebase come from other repositories, namely:
 
-- The code structure in this project is mostly adapted from [dmizr/phuber](https://github.com/dmizr/phuber).
+- The code structure in this project is adapted from [dmizr/phuber](https://github.com/dmizr/phuber).
 - The EMA model comes from [timm](https://github.com/rwightman/pytorch-image-models).
 - The CIFAR-10 ResNets come from [akamaster/pytorch-resnet-cifar10](https://github.com/akamaster/pytorch_resnet_cifar10).
 - The learning rate schedules with warm-up come from [jeonsworld/ViT-pytorch](https://github.com/jeonsworld/ViT-pytorch).
