@@ -1,4 +1,3 @@
 # From He et al., originally designed for ImageNet and adapted for CIFAR
 _target_: src.network.resnet_imagenet.resnet50
 num_classes: 10
-# more info: https://hydra.cc/docs/patterns/specializing_config
