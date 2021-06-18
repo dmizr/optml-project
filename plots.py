@@ -41,7 +41,7 @@ def plots(cfg: DictConfig):
     plot_stability([preds_a, preds_b], labels, iters)
     plot_mismatch([preds_a, preds_b], labels, iters)
     plot_misclassification([preds_a, preds_b], labels, iters)
-    top_n = plot_persistence([preds_a, preds_b], labels, iters, sort="stability")
+    top_n = plot_persistence([preds_a, preds_b], sort="stability")
 
     # get val set
     dataset = CIFAR10
